@@ -1,30 +1,10 @@
 # ============================================================
-# V4 — Multistage + Segurança completa (versão de produção)
+# V1 — Dockerfile básico (ponto de partida)
+# Problemas: versão não fixada, roda como root, sem healthcheck
 # ============================================================
 
-# ── Stage 1: Build ──────────────────────────────────────────
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY src/ .
-# Em projetos reais: RUN npm ci && npm run build
+FROM nginx:latest
 
-# ── Stage 2: Production ─────────────────────────────────────
-FROM nginx:1.27-alpine AS production
+COPY src/index.html /usr/share/nginx/html/index.html
 
-# Cria grupo e usuário sem privilégios
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
-    && chown -R appuser:appgroup /usr/share/nginx/html
-
-# Copia apenas os artefatos do stage de build (sem Node.js)
-COPY --from=builder /app        /usr/share/nginx/html
-COPY nginx.conf                 /etc/nginx/nginx.conf
-
-# Aplica ownership ao conteúdo copiado
-RUN chown -R appuser:appgroup /usr/share/nginx/html
-
-USER appuser
-
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-    CMD wget -qO- http://localhost:8080 || exit 1
+EXPOSE 80
