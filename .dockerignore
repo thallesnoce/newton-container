@@ -1,0 +1,5 @@
+.git
+.github
+*.md
+.dockerignore
+nginx.conf

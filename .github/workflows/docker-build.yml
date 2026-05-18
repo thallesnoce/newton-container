@@ -10,8 +10,11 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  security-events: write
 
 jobs:
+
+  # ── Job 1: Build + Segurança ──────────────────────────────
   build:
     runs-on: ubuntu-latest
 
@@ -19,12 +22,22 @@ jobs:
       - name: Baixar o código
         uses: actions/checkout@v4
 
-      - name: Construir a imagem Docker
+      - name: Construir imagem Docker (multistage)
         run: docker build -t minha-pagina-nginx .
 
-      - name: Verificar se a imagem foi criada
+      - name: Inspecionar tamanho da imagem final
         run: docker images minha-pagina-nginx
 
+      - name: Escanear vulnerabilidades (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: minha-pagina-nginx
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+  # ── Job 2: Deploy (só na branch main, após build passar) ──
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -40,10 +53,10 @@ jobs:
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Fazer upload dos arquivos
+      - name: Fazer upload dos arquivos estáticos
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'src'
 
       - name: Deploy para GitHub Pages
         id: deployment
